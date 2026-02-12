@@ -41,10 +41,19 @@ const VOICE_GENDER_MAP: Record<VoiceSpeaker, 'female' | 'male' | 'neutral'> = {
   shimmer: 'female',
 }
 
+function resolveLangCode(language: string): string {
+  // Handle new codes (hi, bn, etc.)
+  if (language in SPEECH_LANG_MAP) return SPEECH_LANG_MAP[language as AppLanguage]
+  // Handle old Sarvam codes (hi-IN, bn-IN, etc.) stored in IndexedDB
+  if (language.includes('-')) return language
+  // Fallback
+  return 'en-IN'
+}
+
 function findBestVoice(language: AppLanguage, speaker: VoiceSpeaker): SpeechSynthesisVoice | null {
   const voices = speechSynthesis.getVoices()
-  const langCode = SPEECH_LANG_MAP[language]
-  const gender = VOICE_GENDER_MAP[speaker]
+  const langCode = resolveLangCode(language)
+  const gender = VOICE_GENDER_MAP[speaker] ?? 'neutral'
 
   // Try exact language match
   const langVoices = voices.filter((v) => v.lang.startsWith(langCode.split('-')[0]))
@@ -85,7 +94,7 @@ export async function textToSpeech(request: TTSRequest): Promise<Blob> {
 
   return new Promise((resolve, reject) => {
     const utterance = new SpeechSynthesisUtterance(request.text)
-    utterance.lang = SPEECH_LANG_MAP[request.language]
+    utterance.lang = resolveLangCode(request.language)
 
     const voice = findBestVoice(request.language, request.speaker ?? 'nova')
     if (voice) utterance.voice = voice
@@ -126,7 +135,7 @@ export function createSpeechRecognition(language: AppLanguage): SpeechRecognitio
   if (!SpeechRecognitionAPI) return null
 
   const recognition = new SpeechRecognitionAPI()
-  recognition.lang = SPEECH_LANG_MAP[language]
+  recognition.lang = resolveLangCode(language)
   recognition.interimResults = true
   recognition.continuous = false
   recognition.maxAlternatives = 1

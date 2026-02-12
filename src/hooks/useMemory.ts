@@ -1,7 +1,26 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '@/services/db'
-import type { Conversation, AudioFile, AppSettings } from '@/types'
-import { DEFAULT_SETTINGS } from '@/types'
+import type { Conversation, AudioFile, AppSettings, AppLanguage, VoiceSpeaker } from '@/types'
+import { DEFAULT_SETTINGS, LANGUAGE_LABELS, SPEAKER_LABELS } from '@/types'
+
+// Migrate old Sarvam language codes (hi-IN -> hi) and speaker names (meera -> nova)
+function migrateSettings(s: AppSettings): AppSettings {
+  let language = s.language
+  let speaker = s.speaker
+
+  // Convert old "xx-IN" codes to new "xx" codes
+  if (typeof language === 'string' && language.includes('-')) {
+    const base = language.split('-')[0] as AppLanguage
+    language = base in LANGUAGE_LABELS ? base : DEFAULT_SETTINGS.language
+  }
+
+  // Convert old Sarvam speaker names to new VoiceSpeaker names
+  if (typeof speaker === 'string' && !(speaker in SPEAKER_LABELS)) {
+    speaker = DEFAULT_SETTINGS.speaker
+  }
+
+  return { ...s, language: language as AppLanguage, speaker: speaker as VoiceSpeaker }
+}
 
 export function useConversations() {
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -104,7 +123,12 @@ export function useSettings() {
     (async () => {
       const all = await db.settings.toArray()
       if (all.length > 0) {
-        setSettings(all[0])
+        const migrated = migrateSettings(all[0])
+        setSettings(migrated)
+        // Persist migration if values changed
+        if (all[0].id != null && (migrated.language !== all[0].language || migrated.speaker !== all[0].speaker)) {
+          await db.settings.update(all[0].id, { language: migrated.language, speaker: migrated.speaker })
+        }
       } else {
         await db.settings.add(DEFAULT_SETTINGS)
       }
