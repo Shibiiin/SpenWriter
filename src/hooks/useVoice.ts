@@ -47,8 +47,9 @@ export function useVoice() {
       }
 
       recorder.onstop = () => {
+        const mimeBase = recorder.mimeType.split(';')[0]
         const blob = new Blob(chunksRef.current, {
-          type: recorder.mimeType,
+          type: mimeBase,
         })
         recorder.stream.getTracks().forEach((t) => t.stop())
         setIsRecording(false)
