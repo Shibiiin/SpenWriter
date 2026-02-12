@@ -1,39 +1,44 @@
-export type SarvamLanguage =
-  | 'hi-IN'
-  | 'bn-IN'
-  | 'kn-IN'
-  | 'ml-IN'
-  | 'mr-IN'
-  | 'od-IN'
-  | 'pa-IN'
-  | 'raj-IN'
-  | 'ta-IN'
-  | 'te-IN'
-  | 'en-IN'
-  | 'gu-IN'
+export type AppLanguage =
+  | 'hi'
+  | 'bn'
+  | 'kn'
+  | 'ml'
+  | 'mr'
+  | 'pa'
+  | 'ta'
+  | 'te'
+  | 'en'
+  | 'gu'
+  | 'ur'
+  | 'ja'
 
-export type SarvamSpeaker = 'meera' | 'anushka' | 'arvind' | 'madhur'
+export type VoiceSpeaker = 'alloy' | 'ash' | 'coral' | 'echo' | 'fable' | 'nova' | 'onyx' | 'sage' | 'shimmer'
 
-export const LANGUAGE_LABELS: Record<SarvamLanguage, string> = {
-  'hi-IN': 'Hindi',
-  'bn-IN': 'Bengali',
-  'kn-IN': 'Kannada',
-  'ml-IN': 'Malayalam',
-  'mr-IN': 'Marathi',
-  'od-IN': 'Odia',
-  'pa-IN': 'Punjabi',
-  'raj-IN': 'Rajasthani',
-  'ta-IN': 'Tamil',
-  'te-IN': 'Telugu',
-  'en-IN': 'English (India)',
-  'gu-IN': 'Gujarati',
+export const LANGUAGE_LABELS: Record<AppLanguage, string> = {
+  hi: 'Hindi',
+  bn: 'Bengali',
+  kn: 'Kannada',
+  ml: 'Malayalam',
+  mr: 'Marathi',
+  pa: 'Punjabi',
+  ta: 'Tamil',
+  te: 'Telugu',
+  en: 'English',
+  gu: 'Gujarati',
+  ur: 'Urdu',
+  ja: 'Japanese',
 }
 
-export const SPEAKER_LABELS: Record<SarvamSpeaker, string> = {
-  meera: 'Meera (Female)',
-  anushka: 'Anushka (Female)',
-  arvind: 'Arvind (Male)',
-  madhur: 'Madhur (Male)',
+export const SPEAKER_LABELS: Record<VoiceSpeaker, string> = {
+  alloy: 'Alloy (Neutral)',
+  ash: 'Ash (Male)',
+  coral: 'Coral (Female)',
+  echo: 'Echo (Male)',
+  fable: 'Fable (Male)',
+  nova: 'Nova (Female)',
+  onyx: 'Onyx (Male)',
+  sage: 'Sage (Female)',
+  shimmer: 'Shimmer (Female)',
 }
 
 export interface Conversation {
@@ -41,7 +46,7 @@ export interface Conversation {
   title: string
   createdAt: Date
   updatedAt: Date
-  language: SarvamLanguage
+  language: AppLanguage
   messages: Message[]
 }
 
@@ -51,7 +56,7 @@ export interface Message {
   text: string
   audioUrl?: string
   timestamp: Date
-  language: SarvamLanguage
+  language: AppLanguage
 }
 
 export interface AudioFile {
@@ -67,16 +72,16 @@ export interface AudioFile {
 
 export interface AppSettings {
   id?: number
-  language: SarvamLanguage
-  speaker: SarvamSpeaker
+  language: AppLanguage
+  speaker: VoiceSpeaker
   theme: 'light' | 'dark' | 'system'
   autoPlayResponses: boolean
   saveAudioLocally: boolean
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  language: 'hi-IN',
-  speaker: 'meera',
+  language: 'hi',
+  speaker: 'nova',
   theme: 'system',
   autoPlayResponses: true,
   saveAudioLocally: true,

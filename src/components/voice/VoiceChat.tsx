@@ -5,17 +5,16 @@ import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AudioOrb } from './AudioOrb'
 import { useVoice } from '@/hooks/useVoice'
-import type { Message, SarvamLanguage, SarvamSpeaker, Conversation } from '@/types'
+import type { Message, AppLanguage, VoiceSpeaker, Conversation } from '@/types'
 import { generateId, formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
 interface VoiceChatProps {
-  language: SarvamLanguage
-  speaker: SarvamSpeaker
+  language: AppLanguage
+  speaker: VoiceSpeaker
   autoPlay: boolean
   conversation: Conversation | null
   onUpdateConversation: (messages: Message[]) => void
-  onSaveAudio?: (blob: Blob, name: string) => void
 }
 
 export function VoiceChat({
@@ -24,9 +23,8 @@ export function VoiceChat({
   autoPlay,
   conversation,
   onUpdateConversation,
-  onSaveAudio,
 }: VoiceChatProps) {
-  const { isRecording, isSpeaking, isProcessing, error, startRecording, stopRecording, transcribe, speak, stopSpeaking } = useVoice()
+  const { isRecording, isSpeaking, isProcessing, error, interimText, startRecording, stopRecording, speak, stopSpeaking } = useVoice()
   const [textInput, setTextInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messages = conversation?.messages ?? []
@@ -37,10 +35,7 @@ export function VoiceChat({
 
   const handleToggleRecording = async () => {
     if (isRecording) {
-      const audioBlob = await stopRecording()
-      if (!audioBlob) return
-
-      const text = await transcribe(audioBlob, language)
+      const text = await stopRecording()
       if (!text) return
 
       const userMsg: Message = {
@@ -52,10 +47,8 @@ export function VoiceChat({
       }
       const updatedMessages = [...messages, userMsg]
       onUpdateConversation(updatedMessages)
-
-      if (onSaveAudio) onSaveAudio(audioBlob, `recording-${userMsg.id}`)
     } else {
-      await startRecording()
+      await startRecording(language)
     }
   }
 
@@ -74,10 +67,7 @@ export function VoiceChat({
     setTextInput('')
 
     if (autoPlay) {
-      const audioBlob = await speak(textInput.trim(), language, speaker)
-      if (audioBlob && onSaveAudio) {
-        onSaveAudio(audioBlob, `tts-${userMsg.id}`)
-      }
+      await speak(textInput.trim(), language, speaker)
     }
   }
 
@@ -85,10 +75,7 @@ export function VoiceChat({
     if (isSpeaking) {
       stopSpeaking()
     } else {
-      const audioBlob = await speak(msg.text, language, speaker)
-      if (audioBlob && onSaveAudio) {
-        onSaveAudio(audioBlob, `tts-${msg.id}`)
-      }
+      await speak(msg.text, language, speaker)
     }
   }
 
@@ -98,7 +85,7 @@ export function VoiceChat({
       <Card className="flex-1 overflow-hidden">
         <ScrollArea className="h-[400px] md:h-[500px]">
           <CardContent className="p-4 space-y-4">
-            {messages.length === 0 && (
+            {messages.length === 0 && !interimText && (
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
                 <Mic className="w-12 h-12 mb-4 opacity-30" />
                 <p className="text-lg font-medium">Start a conversation</p>
@@ -137,6 +124,15 @@ export function VoiceChat({
                 </div>
               </div>
             ))}
+            {/* Live transcription preview */}
+            {interimText && (
+              <div className="flex gap-3 max-w-[85%] ml-auto flex-row-reverse">
+                <div className="rounded-2xl px-4 py-2.5 text-sm bg-primary/60 text-primary-foreground italic">
+                  <p>{interimText}</p>
+                  <span className="text-xs opacity-60">Listening...</span>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </CardContent>
         </ScrollArea>
@@ -159,7 +155,7 @@ export function VoiceChat({
         />
         <p className="text-sm text-muted-foreground">
           {isRecording
-            ? 'Recording... Tap to stop'
+            ? 'Listening... Tap to stop'
             : isProcessing
               ? 'Processing...'
               : isSpeaking

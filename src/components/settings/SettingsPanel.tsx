@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog'
 import type { AppSettings } from '@/types'
 import { LANGUAGE_LABELS, SPEAKER_LABELS } from '@/types'
-import type { SarvamLanguage, SarvamSpeaker } from '@/types'
+import type { AppLanguage, VoiceSpeaker } from '@/types'
 import { useState } from 'react'
 
 interface SettingsPanelProps {
@@ -66,13 +66,13 @@ export function SettingsPanel({
               <label className="text-sm font-medium">Language</label>
               <Select
                 value={settings.language}
-                onValueChange={(v) => onUpdate({ language: v as SarvamLanguage })}
+                onValueChange={(v) => onUpdate({ language: v as AppLanguage })}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.entries(LANGUAGE_LABELS) as [SarvamLanguage, string][]).map(
+                  {(Object.entries(LANGUAGE_LABELS) as [AppLanguage, string][]).map(
                     ([code, label]) => (
                       <SelectItem key={code} value={code}>
                         {label}
@@ -86,13 +86,13 @@ export function SettingsPanel({
               <label className="text-sm font-medium">Speaker</label>
               <Select
                 value={settings.speaker}
-                onValueChange={(v) => onUpdate({ speaker: v as SarvamSpeaker })}
+                onValueChange={(v) => onUpdate({ speaker: v as VoiceSpeaker })}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.entries(SPEAKER_LABELS) as [SarvamSpeaker, string][]).map(
+                  {(Object.entries(SPEAKER_LABELS) as [VoiceSpeaker, string][]).map(
                     ([id, label]) => (
                       <SelectItem key={id} value={id}>
                         {label}

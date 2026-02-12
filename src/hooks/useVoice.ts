@@ -1,104 +1,92 @@
 import { useState, useRef, useCallback } from 'react'
-import { textToSpeech, speechToText } from '@/services/sarvam'
-import type { SarvamLanguage, SarvamSpeaker } from '@/types'
+import { textToSpeech, createSpeechRecognition } from '@/services/openai'
+import type { AppLanguage, VoiceSpeaker } from '@/types'
 
 export function useVoice() {
   const [isRecording, setIsRecording] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [isProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [interimText, setInterimText] = useState('')
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const chunksRef = useRef<Blob[]>([])
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const transcriptRef = useRef('')
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(async (language: AppLanguage) => {
     setError(null)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-          ? 'audio/webm;codecs=opus'
-          : 'audio/webm',
-      })
-      mediaRecorderRef.current = mediaRecorder
-      chunksRef.current = []
+    setInterimText('')
+    transcriptRef.current = ''
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data)
-      }
-
-      mediaRecorder.start(100)
-      setIsRecording(true)
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to access microphone'
-      )
+    const recognition = createSpeechRecognition(language)
+    if (!recognition) {
+      setError('Speech recognition is not supported in this browser. Try Chrome.')
+      return
     }
+
+    recognitionRef.current = recognition
+
+    recognition.onresult = (event) => {
+      let interim = ''
+      let final = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript
+        if (event.results[i].isFinal) {
+          final += transcript
+        } else {
+          interim += transcript
+        }
+      }
+      if (final) {
+        transcriptRef.current += final
+      }
+      setInterimText(transcriptRef.current + interim)
+    }
+
+    recognition.onerror = (event) => {
+      if (event.error !== 'aborted') {
+        setError(`Recognition error: ${event.error}`)
+      }
+      setIsRecording(false)
+    }
+
+    recognition.onend = () => {
+      setIsRecording(false)
+    }
+
+    recognition.start()
+    setIsRecording(true)
   }, [])
 
-  const stopRecording = useCallback(async (): Promise<Blob | null> => {
+  const stopRecording = useCallback(async (): Promise<string | null> => {
     return new Promise((resolve) => {
-      const recorder = mediaRecorderRef.current
-      if (!recorder || recorder.state === 'inactive') {
+      const recognition = recognitionRef.current
+      if (!recognition) {
         setIsRecording(false)
         resolve(null)
         return
       }
 
-      recorder.onstop = () => {
-        const mimeBase = recorder.mimeType.split(';')[0]
-        const blob = new Blob(chunksRef.current, {
-          type: mimeBase,
-        })
-        recorder.stream.getTracks().forEach((t) => t.stop())
-        setIsRecording(false)
-        resolve(blob)
+      const originalOnEnd = recognition.onend
+      recognition.onend = (event) => {
+        if (originalOnEnd && typeof originalOnEnd === 'function') {
+          originalOnEnd.call(recognition, event)
+        }
+        const text = transcriptRef.current.trim()
+        setInterimText('')
+        resolve(text || null)
       }
 
-      recorder.stop()
+      recognition.stop()
     })
   }, [])
 
-  const transcribe = useCallback(
-    async (audio: Blob, language: SarvamLanguage) => {
-      setIsProcessing(true)
-      setError(null)
-      try {
-        const text = await speechToText({ audio, language })
-        return text
-      } catch (err) {
-        const msg =
-          err instanceof Error ? err.message : 'Transcription failed'
-        setError(msg)
-        return null
-      } finally {
-        setIsProcessing(false)
-      }
-    },
-    []
-  )
-
   const speak = useCallback(
-    async (text: string, language: SarvamLanguage, speaker: SarvamSpeaker) => {
+    async (text: string, language: AppLanguage, speaker: VoiceSpeaker) => {
       setIsSpeaking(true)
       setError(null)
       try {
-        const audioBlob = await textToSpeech({ text, language, speaker })
-        const url = URL.createObjectURL(audioBlob)
-        const audio = new Audio(url)
-        audioRef.current = audio
-
-        await new Promise<void>((resolve, reject) => {
-          audio.onended = () => {
-            URL.revokeObjectURL(url)
-            resolve()
-          }
-          audio.onerror = () => reject(new Error('Audio playback failed'))
-          audio.play()
-        })
-
-        return audioBlob
+        await textToSpeech({ text, language, speaker })
+        return new Blob(['speech-complete'], { type: 'text/plain' })
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Speech failed'
         setError(msg)
@@ -111,11 +99,8 @@ export function useVoice() {
   )
 
   const stopSpeaking = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current = null
-      setIsSpeaking(false)
-    }
+    speechSynthesis.cancel()
+    setIsSpeaking(false)
   }, [])
 
   return {
@@ -123,9 +108,9 @@ export function useVoice() {
     isSpeaking,
     isProcessing,
     error,
+    interimText,
     startRecording,
     stopRecording,
-    transcribe,
     speak,
     stopSpeaking,
   }

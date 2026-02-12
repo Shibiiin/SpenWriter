@@ -13,7 +13,7 @@ import type { Conversation, Message } from '@/types'
 export default function App() {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { conversations, loading: convsLoading, create, update, remove, search, exportData, importData, clearAll } = useConversations()
-  const { files, loading: filesLoading, save: saveAudio, remove: removeAudio } = useAudioFiles()
+  const { files, loading: filesLoading, remove: removeAudio } = useAudioFiles()
   const { settings, updateSettings } = useSettings()
 
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null)
@@ -55,22 +55,6 @@ export default function App() {
       }
     },
     [activeConversation, create, update, settings.language]
-  )
-
-  const handleSaveAudio = useCallback(
-    async (blob: Blob, name: string) => {
-      if (!settings.saveAudioLocally) return
-      await saveAudio({
-        name,
-        blob,
-        mimeType: blob.type,
-        size: blob.size,
-        duration: 0,
-        conversationId: activeConversation?.id,
-        createdAt: new Date(),
-      })
-    },
-    [settings.saveAudioLocally, saveAudio, activeConversation]
   )
 
   const handleNewConversation = () => {
@@ -126,7 +110,6 @@ export default function App() {
               autoPlay={settings.autoPlayResponses}
               conversation={activeConversation}
               onUpdateConversation={handleUpdateConversation}
-              onSaveAudio={handleSaveAudio}
             />
           </TabsContent>
 
