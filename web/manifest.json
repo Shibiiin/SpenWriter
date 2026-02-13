@@ -1,0 +1,11 @@
+{
+  "name": "SpenWriter",
+  "short_name": "SpenWriter",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7c3aed",
+  "description": "Doctor Handwriting Input Pad with Voice Interaction",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
+}

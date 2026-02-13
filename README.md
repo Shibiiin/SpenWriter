@@ -1,73 +1,99 @@
-# React + TypeScript + Vite
+# SpenWriter — Doctor Handwriting Input Pad
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Flutter Web application that provides doctors with a handwriting input pad
+for capturing medical notes using mouse, stylus, or touch. Handwritten content
+is recognized and converted to editable text.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Handwriting Input Pad** — Canvas-based drawing with pen/eraser tools, undo, clear,
+  adjustable pen thickness, and quadratic curve smoothing for smooth strokes
+- **Handwriting Recognition** — Multi-backend support: browser native API, configurable
+  REST API (Google Vision / Azure / MyScript), and offline fallback
+- **Voice Input** — Record voice notes using the Web Speech API
+- **Text Input** — Standard keyboard input as a fallback
+- **Conversation History** — Searchable list of past conversations stored locally
+- **Settings** — Language selection (12 languages), speaker voice, theme, and data management
+- **Light/Dark Theme** — System-aware with manual toggle
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# Ensure Flutter SDK is installed (3.5+)
+flutter --version
 
-## Expanding the ESLint configuration
+# Get dependencies
+flutter pub get
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# Run on web (Chrome)
+flutter run -d chrome
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Build for production
+flutter build web
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Project Structure
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+lib/
+  main.dart                          # App entry point
+  models/
+    app_types.dart                   # Data models, enums, types
+  providers/
+    app_provider.dart                # Central state management (ChangeNotifier)
+  services/
+    db_service.dart                  # Local persistence (SharedPreferences)
+    speech_service.dart              # Web Speech API (TTS + STT)
+    handwriting_service.dart         # Handwriting recognition (multi-backend)
+  theme/
+    app_theme.dart                   # Light/dark Material 3 themes
+  screens/
+    home_screen.dart                 # Main tabbed layout
+    voice_chat_screen.dart           # Chat + voice + handwriting input
+    conversation_history_screen.dart # Past conversations
+    file_manager_screen.dart         # Audio file management
+    settings_screen.dart             # App settings
+  widgets/
+    audio_orb.dart                   # Animated recording orb
+    handwriting_canvas.dart          # Drawing canvas (CustomPainter)
+    handwriting_pad.dart             # Full handwriting dialog
+web/
+  index.html                        # Web entry point
+  manifest.json                     # PWA manifest
+```
+
+## Handwriting Recognition API
+
+By default the app uses a local fallback that describes captured strokes.
+To enable real OCR, set the API URL at build time:
+
+```bash
+flutter run -d chrome --dart-define=HANDWRITING_API_URL=https://your-api.com/handwriting-recognize
+```
+
+The API should accept:
+```
+POST /handwriting-recognize
+Content-Type: application/json
+
+{
+  "strokes": [[{"x": 120, "y": 340, "t": 1}, ...]],
+  "image": "<base64 PNG>",
+  "language": "en"
+}
+```
+
+And respond with:
+```json
+{
+  "text": "Patient has fever and cough",
+  "confidence": 0.92
+}
+```
+
+Compatible backends: Google Cloud Vision OCR, Azure Ink Recognizer, MyScript iink.
+
+## Supported Languages
+
+Hindi, Bengali, Kannada, Malayalam, Marathi, Punjabi, Tamil, Telugu, English,
+Gujarati, Urdu, Japanese.
