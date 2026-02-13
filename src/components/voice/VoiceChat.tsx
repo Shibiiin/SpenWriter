@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { Mic, Volume2, VolumeX, Send } from 'lucide-react'
+import { Mic, Volume2, VolumeX, Send, PenLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AudioOrb } from './AudioOrb'
+import { HandwritingPad } from '@/components/handwriting/HandwritingPad'
 import { useVoice } from '@/hooks/useVoice'
 import type { Message, AppLanguage, VoiceSpeaker, Conversation } from '@/types'
 import { generateId, formatDate } from '@/lib/utils'
@@ -26,6 +27,7 @@ export function VoiceChat({
 }: VoiceChatProps) {
   const { isRecording, isSpeaking, isProcessing, error, interimText, startRecording, stopRecording, speak, stopSpeaking } = useVoice()
   const [textInput, setTextInput] = useState('')
+  const [handwritingOpen, setHandwritingOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messages = conversation?.messages ?? []
 
@@ -79,6 +81,18 @@ export function VoiceChat({
     }
   }
 
+  const handleHandwritingText = (text: string) => {
+    const userMsg: Message = {
+      id: generateId(),
+      role: 'user',
+      text,
+      timestamp: new Date(),
+      language,
+    }
+    const updatedMessages = [...messages, userMsg]
+    onUpdateConversation(updatedMessages)
+  }
+
   return (
     <div className="flex flex-col h-full gap-4">
       {/* Messages area */}
@@ -89,7 +103,7 @@ export function VoiceChat({
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
                 <Mic className="w-12 h-12 mb-4 opacity-30" />
                 <p className="text-lg font-medium">Start a conversation</p>
-                <p className="text-sm">Tap the orb to record or type a message below</p>
+                <p className="text-sm">Tap the orb to record, type a message, or use handwriting</p>
               </div>
             )}
             {messages.map((msg) => (
@@ -163,7 +177,7 @@ export function VoiceChat({
                 : 'Tap to record'}
         </p>
 
-        {/* Text input fallback */}
+        {/* Text input + Add (handwriting) button */}
         <div className="flex w-full max-w-md gap-2">
           <input
             type="text"
@@ -176,8 +190,34 @@ export function VoiceChat({
           <Button size="icon" onClick={handleSendText} disabled={!textInput.trim()}>
             <Send className="w-4 h-4" />
           </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setHandwritingOpen(true)}
+            title="Add via handwriting"
+          >
+            <PenLine className="w-4 h-4" />
+          </Button>
         </div>
+
+        {/* Add button with label */}
+        <Button
+          variant="secondary"
+          className="gap-2"
+          onClick={() => setHandwritingOpen(true)}
+        >
+          <PenLine className="w-4 h-4" />
+          Add — Handwriting Input
+        </Button>
       </div>
+
+      {/* Handwriting pad dialog */}
+      <HandwritingPad
+        open={handwritingOpen}
+        onOpenChange={setHandwritingOpen}
+        onTextRecognized={handleHandwritingText}
+        language={language}
+      />
     </div>
   )
 }
